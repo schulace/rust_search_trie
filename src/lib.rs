@@ -1,6 +1,7 @@
 use std::collections::hash_map::Iter as HashMapIter;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
+use std::iter::Extend;
 
 #[derive(Debug, Default, Clone)]
 pub struct SearchTrie<T> {
@@ -56,9 +57,10 @@ where
         self.successors.get_mut(letter)
     }
 
-    pub fn insert_word(&mut self, mut word: Vec<T>) -> bool {
-        match word.len() {
-            0 => {
+    pub fn insert_word<I: IntoIterator<Item = T>>(&mut self, word_value: I) -> bool {
+        let mut word = word_value.into_iter();
+        match word.next() {
+            None => {
                 if self.is_word_end {
                     true
                 } else {
@@ -66,8 +68,7 @@ where
                     false
                 }
             }
-            _ => {
-                let next_letter = word.remove(0);
+            Some(next_letter) => {
                 if let Some(child) = self.successor_for_mut(&next_letter) {
                     child.insert_word(word)
                 } else {
@@ -119,7 +120,7 @@ where
 }
 
 impl<T> SearchTrie<T> {
-    pub fn iter(&self) -> SearchTrieIterator<T> {
+    fn iter(&self) -> SearchTrieIterator<T> {
         SearchTrieIterator {
             root_trie: &self,
             current_iter: self.successors.iter(),
@@ -132,6 +133,30 @@ impl<T> SearchTrie<T> {
         SearchTrie {
             successors: HashMap::new(),
             is_word_end: false,
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a SearchTrie<T> {
+    type Item = Vec<&'a T>;
+    type IntoIter = SearchTrieIterator<'a, T>;
+    fn into_iter(self) -> SearchTrieIterator<'a, T> {
+        self.iter()
+    }
+}
+
+impl<T, I> Extend<I> for SearchTrie<T>
+where
+    T: std::cmp::Eq + std::hash::Hash,
+    I: IntoIterator<Item = T>,
+{
+    // X: IntoIterator<Item: IntoIterator<T>>
+    fn extend<X>(&mut self, iter: X)
+    where
+        X: IntoIterator<Item = I>,
+    {
+        for item in iter {
+            self.insert_word(item);
         }
     }
 }
