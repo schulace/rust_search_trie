@@ -146,6 +146,9 @@ pub struct SearchTrieIterator<'a, T> {
 }
 
 impl<'a, T> SearchTrieIterator<'a, T> {
+    // gets the next item from the iterator, but in reverse. This is because
+    // the return type is a Vec, where push()ing to the end is O(1), but pushing
+    // to the front is O(n).
     fn internal_next(&mut self) -> Option<Vec<&'a T>> {
         if self.is_exhausted {
             return None;
@@ -186,6 +189,7 @@ impl<'a, T> SearchTrieIterator<'a, T> {
 impl<'a, T> Iterator for SearchTrieIterator<'a, T> {
     type Item = Vec<&'a T>;
     fn next(&mut self) -> Option<Self::Item> {
+        // get the reversed next element, reverse it, then return
         self.internal_next().map(|mut v| {
             v.reverse();
             v
